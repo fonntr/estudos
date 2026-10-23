@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plataforma ACAFE Medicina - Dashboard & Performance</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81',
+              accent: '#8b5cf6',
+              neon: '#a855f7'
+            },
+            dark: {
+              bg: '#090d16',
+              card: '#111827',
+              border: '#1f2937',
+              hover: '#1f293d'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { background-color: #090d16; color: #f3f4f6; font-family: 'Inter', sans-serif; }
+    .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .glow-purple { box-shadow: 0 0 25px -5px rgba(139, 92, 246, 0.3); }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #090d16; }
+    ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #374151; }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col antialiased">
+
+  <!-- TOP NAVBAR -->
+  <header class="glass sticky top-0 z-50 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-brand-accent flex items-center justify-center shadow-lg glow-purple">
+        <i class="fa-solid fa-graduation-cap text-white text-xl"></i>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-purple-200 to-brand-accent bg-clip-text text-transparent">
+          ACAFE <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-900/60 text-brand-neon border border-brand-500/30">MEDICINA</span>
+        </h1>
+        <p class="text-xs text-gray-400">Sistema de Desempenho & Log de Simulados</p>
+      </div>
+    </div>
+
+    <!-- Navegação -->
+    <nav class="hidden md:flex space-x-1 bg-gray-900/80 p-1.5 rounded-xl border border-gray-800">
+      <button onclick="switchTab('dashboard')" id="nav-dashboard" class="px-4 py-2 text-sm font-medium rounded-lg transition-all bg-brand-600 text-white shadow-md">
+        <i class="fa-solid fa-chart-pie mr-2"></i>Dashboard
+      </button>
+      <button onclick="switchTab('simulado')" id="nav-simulado" class="px-4 py-2 text-sm font-medium rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-all">
+        <i class="fa-solid fa-calculator mr-2"></i>Simulador de Prova
+      </button>
+      <button onclick="switchTab('bugs')" id="nav-bugs" class="px-4 py-2 text-sm font-medium rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-all">
+        <i class="fa-solid fa-bug mr-2"></i>Log de Erros
+      </button>
+      <button onclick="switchTab('redacao')" id="nav-redacao" class="px-4 py-2 text-sm font-medium rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-all">
+        <i class="fa-solid fa-pen-nib mr-2"></i>Lab de Redação
+      </button>
+    </nav>
+
+    <div class="flex items-center space-x-3">
+      <button onclick="resetData()" class="text-xs text-gray-400 hover:text-red-400 px-3 py-1.5 rounded-lg border border-gray-800 hover:border-red-900/50 transition">
+        <i class="fa-solid fa-rotate-left mr-1"></i>Resetar
+      </button>
+    </div>
+  </header>
+
+  <!-- NAVEGAÇÃO MOBILE -->
+  <div class="md:hidden flex overflow-x-auto p-2 bg-gray-900 border-b border-gray-800 space-x-2">
+    <button onclick="switchTab('dashboard')" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-brand-600 text-white whitespace-nowrap">Dashboard</button>
+    <button onclick="switchTab('simulado')" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-800 text-gray-300 whitespace-nowrap">Simulador</button>
+    <button onclick="switchTab('bugs')" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-800 text-gray-300 whitespace-nowrap">Log de Erros</button>
+    <button onclick="switchTab('redacao')" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-800 text-gray-300 whitespace-nowrap">Redação</button>
+  </div>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+    <!-- 1. TAB: DASHBOARD -->
+    <section id="tab-dashboard" class="space-y-6">
+      
+      <!-- Metrics Row -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="glass p-5 rounded-2xl relative overflow-hidden border-l-4 border-l-brand-500">
+          <div class="text-xs font-medium text-gray-400 uppercase tracking-wider">Último Score Calculado</div>
+          <div class="text-3xl font-extrabold text-white mt-1" id="kpi-score">0.00 / 10.0</div>
+          <div class="text-xs text-brand-neon mt-1"><i class="fa-solid fa-bullseye mr-1"></i>Meta Medicina: 7.50+</div>
+        </div>
+
+        <div class="glass p-5 rounded-2xl border-l-4 border-l-purple-500">
+          <div class="text-xs font-medium text-gray-400 uppercase tracking-wider">Média de Acertos (Objetivas)</div>
+          <div class="text-3xl font-extrabold text-white mt-1" id="kpi-acertos">0 / 63</div>
+          <div class="text-xs text-gray-400 mt-1">Proporção: <span id="kpi-porcentagem" class="text-purple-400 font-semibold">0%</span></div>
+        </div>
+
+        <div class="glass p-5 rounded-2xl border-l-4 border-l-red-500">
+          <div class="text-xs font-medium text-gray-400 uppercase tracking-wider">Erros Registrados (Bugs)</div>
+          <div class="text-3xl font-extrabold text-white mt-1" id="kpi-bugs-count">0</div>
+          <div class="text-xs text-red-400 mt-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Aguardando revisão</div>
+        </div>
+
+        <div class="glass p-5 rounded-2xl border-l-4 border-l-emerald-500">
+          <div class="text-xs font-medium text-gray-400 uppercase tracking-wider">Nota Média de Redação</div>
+          <div class="text-3xl font-extrabold text-white mt-1" id="kpi-redacao">0.00</div>
+          <div class="text-xs text-emerald-400 mt-1">Formato ACAFE (10 a 33 linhas)</div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Gráfico por Matéria -->
+        <div class="lg:col-span-2 glass p-6 rounded-2xl">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-semibold text-white flex items-center">
+              <i class="fa-solid fa-chart-column text-brand-neon mr-2"></i>Desempenho por Disciplina (Último Simulado)
+            </h3>
+            <span class="text-xs text-gray-400">Total: 63 Questões</span>
+          </div>
+          <div class="h-64 relative">
+            <canvas id="chartMaterias"></canvas>
+          </div>
+        </div>
+
+        <!-- Gráfico Causa Raiz -->
+        <div class="glass p-6 rounded-2xl">
+          <h3 class="text-base font-semibold text-white mb-4 flex items-center">
+            <i class="fa-solid fa-pie-chart text-purple-400 mr-2"></i>Diagnóstico de Erros (Causa Raiz)
+          </h3>
+          <div class="h-64 relative flex items-center justify-center">
+            <canvas id="chartCausas"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Histórico de Simulados -->
+      <div class="glass p-6 rounded-2xl">
+        <h3 class="text-base font-semibold text-white mb-4"><i class="fa-solid fa-history text-brand-500 mr-2"></i>Histórico de Simulados Salvos</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left text-gray-300">
+            <thead class="text-xs text-gray-400 uppercase bg-gray-900/60 border-b border-gray-800">
+              <tr>
+                <th class="px-4 py-3">Data / Nome</th>
+                <th class="px-4 py-3">Acertos Objetivas</th>
+                <th class="px-4 py-3">Redação</th>
+                <th class="px-4 py-3">Score Ponderado</th>
+                <th class="px-4 py-3 text-right">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="lista-simulados-historico" class="divide-y divide-gray-800">
+              <!-- Render via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. TAB: SIMULADOR DE PROVA ACAFE -->
+    <section id="tab-simulado" class="space-y-6 hidden">
+      <div class="glass p-6 rounded-2xl">
+        <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-gray-800 gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center">
+              <i class="fa-solid fa-sliders text-brand-neon mr-2"></i>Simulador Oficial de Pontuação ACAFE
+            </h2>
+            <p class="text-xs text-gray-400 mt-0.5">Insira o número de acertos por matéria e a nota da redação (0 a 10).</p>
+          </div>
+          <div class="flex items-center space-x-3">
+            <input type="text" id="simulado-nome" placeholder="Nome do Simulado (ex: Simulado 01 - Poliedro)" class="bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500 w-64">
+            <button onclick="salvarSimulado()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-medium text-sm transition shadow-lg glow-purple">
+              <i class="fa-solid fa-floppy-disk mr-2"></i>Salvar Resultado
+            </button>
+          </div>
+        </div>
+
+        <!-- Formulario Grid por Matérias -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+          
+          <!-- Língua Portuguesa / Literatura (14q) -->
+          <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-800/80">
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-xs font-bold text-purple-300">Português / Literatura</label>
+              <span class="text-xs text-gray-500">Max: 14</span>
+            </div>
+            <input type="number" id="input-port" min="0" max="14" value="10" onchange="calcularScore()" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-bold focus:border-purple-500 text-center">
+          </div>
+
+          <!-- Matemática (7q) -->
+          <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-800/80">
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-xs font-bold text-gray-300">Matemática</label>
+              <span class="text-xs text-gray-500">Max: 7</span>
+            </div>
+            <input type="number" id="input-mat" min="0" max="7" value="5" onchange="calcularScore()" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-bold focus:border-purple-500 text-center">
+          </div>
+
+          <!-- Física (7q) -->
+          <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-800/80">
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-xs font-bold text-gray-300">Física</label>
+              <span class="text-xs text-gray-500">Max: 7</span>
+            </div>
+            <input type="number" id="input-fis" min="0" max="7" value="5" onchange="calcularScore()" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-bold focus:border-purple-500 text-center">
+          </div>
+
+          <!-- Química (7q) -->
+          <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-800/80">
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-xs font-bold text-gray-300">Química</label>
+              <span class="text-xs text-gray-500">Max: 7</span>
+            </div>
+            <input type="number" id="input-qui" min="0" max="7" value="6" onchange="calcularScore()" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-bold focus:border-purple-500 text-center">
+          </div>
+
+          <!-- Biologia (7q) -->
+          <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-800/80">
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-xs font-bold text-gray-300">Biologia</label>
+              <span class="text-xs text-gray-500">Max: 7</span>
+            </div>
+            <input type="number" id="input-bio" min="0" max="7" value="6" onchange="calcularScore()" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-bold focus:border-purple-500 text-center">
+          </div>
+
+          <!-- História (7q) -->
+          <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-800/80">
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-xs font-bold text-gray-300">História</label>
+              <span class="text-xs text-gray-500">Max: 7</span>
+            </div>
+            <input type="number" id="input-his" min="0" max="7" value="5" onchange="calcularScore()" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-bold focus:border-purple-500 text-center">
+          </div>
+
+          <!-- Geografia (7q) -->
+          <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-800/80">
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-xs font-bold text-gray-300">Geografia</label>
+              <span class="text-xs text-gray-500">Max: 7</span>
+            </div>
+            <input type="number" id="input-geo" min="0" max="7" value="5" onchange="calcularScore()" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-bold focus:border-purple-500 text-center">
+          </div>
+
+          <!-- Língua Estrangeira (7q) -->
+          <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-800/80">
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-xs font-bold text-gray-300">Língua Estrangeira</label>
+              <span class="text-xs text-gray-500">Max: 7</span>
+            </div>
+            <input type="number" id="input-ing" min="0" max="7" value="6" onchange="calcularScore()" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-bold focus:border-purple-500 text-center">
+          </div>
+
+        </div>
+
+        <!-- Redação Block -->
+        <div class="mt-6 p-5 bg-gradient-to-r from-gray-900 via-brand-900/20 to-gray-900 rounded-xl border border-brand-500/20 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <h4 class="text-sm font-bold text-white flex items-center"><i class="fa-solid fa-pen-fancy text-brand-neon mr-2"></i>Nota da Redação Dissertativa ACAFE</h4>
+            <p class="text-xs text-gray-400">Escala oficial de 0.00 a 10.00</p>
+          </div>
+          <div class="flex items-center space-x-3">
+            <input type="number" id="input-red" min="0" max="10" step="0.1" value="8.5" onchange="calcularScore()" class="w-32 bg-gray-900 border border-brand-500/50 rounded-lg px-3 py-2 text-xl font-extrabold text-brand-neon text-center focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Resultado do Calculo em Tempo Real -->
+        <div class="mt-6 p-6 glass rounded-xl border border-brand-500/30 flex flex-col md:flex-row items-center justify-between text-center md:text-left gap-4">
+          <div>
+            <div class="text-xs font-semibold text-gray-400 uppercase">Pontuação Final Calculada</div>
+            <div class="text-4xl font-black text-white mt-1" id="calc-resultado">0.00 <span class="text-sm font-normal text-gray-400">/ 10.0</span></div>
+          </div>
+          <div id="calc-status-badge" class="px-4 py-2 rounded-full text-xs font-bold bg-brand-900/80 text-brand-neon border border-brand-500/30">
+            Aguardando Cálculo...
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 3. TAB: LOG DE BUGS -->
+    <section id="tab-bugs" class="space-y-6 hidden">
+      <div class="glass p-6 rounded-2xl">
+        <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-gray-800 gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center">
+              <i class="fa-solid fa-bug text-red-400 mr-2"></i>Banco de Questões Erradas (Log de BUGS)
+            </h2>
+            <p class="text-xs text-gray-400">Cadastre e revise falhas para não repeti-las na prova.</p>
+          </div>
+          <button onclick="toggleModalBug()" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium text-sm transition shadow-lg">
+            <i class="fa-solid fa-plus mr-2"></i>Registrar Novo BUG
+          </button>
+        </div>
+
+        <!-- Filtros -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 mb-6">
+          <select id="filtro-materia" onchange="renderBugs()" class="bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300">
+            <option value="TODAS">Todas as Disciplinas</option>
+            <option value="Português/Lit">Português/Literatura</option>
+            <option value="Matemática">Matemática</option>
+            <option value="Física">Física</option>
+            <option value="Química">Química</option>
+            <option value="Biologia">Biologia</option>
+            <option value="História">História</option>
+            <option value="Geografia">Geografia</option>
+            <option value="Língua Estrangeira">Língua Estrangeira</option>
+          </select>
+
+          <select id="filtro-causa" onchange="renderBugs()" class="bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300">
+            <option value="TODAS">Todas as Causas Raiz</option>
+            <option value="Lacuna Teórica">Lacuna Teórica</option>
+            <option value="Interpretação da Banca">Interpretação da Banca</option>
+            <option value="Atenção/Distração">Atenção/Distração</option>
+            <option value="Estratégia/Tempo">Estratégia/Tempo</option>
+          </select>
+
+          <select id="filtro-status" onchange="renderBugs()" class="bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300">
+            <option value="TODOS">Todos os Status</option>
+            <option value="A Analisar">A Analisar</option>
+            <option value="Revisado">Revisado</option>
+            <option value="Dominado">Dominado</option>
+          </select>
+        </div>
+
+        <!-- Tabela de Bugs -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left text-gray-300">
+            <thead class="text-xs text-gray-400 uppercase bg-gray-900/60 border-b border-gray-800">
+              <tr>
+                <th class="px-4 py-3">Questão / Matéria</th>
+                <th class="px-4 py-3">Tópico</th>
+                <th class="px-4 py-3">Causa Raiz</th>
+                <th class="px-4 py-3">Ação Corretiva</th>
+                <th class="px-4 py-3">Status</th>
+                <th class="px-4 py-3 text-right">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-bugs-body" class="divide-y divide-gray-800">
+              <!-- Render via JS -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 4. TAB: LABORATÓRIO DE REDAÇÃO -->
+    <section id="tab-redacao" class="space-y-6 hidden">
+      <div class="glass p-6 rounded-2xl">
+        <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-gray-800 gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center">
+              <i class="fa-solid fa-pen-nib text-brand-neon mr-2"></i>Laboratório de Redação ACAFE (10 a 33 Linhas)
+            </h2>
+            <p class="text-xs text-gray-400">Treine com síntese rigorosa, sem proposta de intervenção tipo ENEM.</p>
+          </div>
+          
+          <!-- Timer e Métricas -->
+          <div class="flex items-center space-x-4">
+            <div class="bg-gray-900 px-4 py-2 rounded-xl border border-gray-800 text-center">
+              <div class="text-xs text-gray-500">Cronômetro</div>
+              <div class="text-lg font-mono font-bold text-white" id="timer-display">00:00</div>
+            </div>
+            <button onclick="toggleTimer()" id="btn-timer" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-xs font-semibold">
+              <i class="fa-solid fa-play mr-1"></i>Iniciar
+            </button>
+          </div>
+        </div>
+
+        <!-- Editor e Contador -->
+        <div class="mt-6 space-y-4">
+          <input type="text" id="redacao-titulo" placeholder="Tema da Redação (ex: Limites da Inteligência Artificial na Medicina)" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-sm font-semibold text-white focus:outline-none focus:border-brand-500">
+
+          <textarea id="redacao-texto" rows="16" oninput="atualizarContadorRedacao()" placeholder="Digite sua redação aqui. Lembre-se: a ACAFE exige síntese entre 10 e 33 linhas..." class="w-full bg-gray-900 border border-gray-800 rounded-xl p-4 text-sm text-gray-200 font-mono leading-relaxed focus:outline-none focus:border-brand-500"></textarea>
+
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-gray-900/80 rounded-xl border border-gray-800">
+            <div class="flex items-center space-x-6">
+              <div>
+                <span class="text-xs text-gray-500">Linhas Totais:</span>
+                <span id="redacao-linhas" class="text-base font-bold text-white ml-1">0</span>
+              </div>
+              <div>
+                <span class="text-xs text-gray-500">Palavras:</span>
+                <span id="redacao-palavras" class="text-base font-bold text-white ml-1">0</span>
+              </div>
+              <div id="redacao-status-linha" class="text-xs px-2.5 py-1 rounded-full bg-yellow-900/40 text-yellow-300 border border-yellow-800/50">
+                Abaixo do mínimo (Min: 10)
+              </div>
+            </div>
+
+            <button onclick="salvarTextoRedacao()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-lg transition">
+              <i class="fa-solid fa-bookmark mr-1"></i>Salvar Rascunho
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL PARA REGISTRO DE BUG -->
+  <div id="modal-bug" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass w-full max-w-lg p-6 rounded-2xl border border-gray-800 space-y-4">
+      <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+        <h3 class="text-base font-bold text-white"><i class="fa-solid fa-bug text-red-400 mr-2"></i>Registrar Questão Errada</h3>
+        <button onclick="toggleModalBug()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs text-gray-400">Disciplina / Frente</label>
+          <select id="bug-materia" class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-sm text-white mt-1">
+            <option value="Português/Lit">Português / Literatura</option>
+            <option value="Matemática">Matemática</option>
+            <option value="Física">Física</option>
+            <option value="Química">Química</option>
+            <option value="Biologia">Biologia</option>
+            <option value="História">História</option>
+            <option value="Geografia">Geografia</option>
+            <option value="Língua Estrangeira">Língua Estrangeira</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-xs text-gray-400">Tópico Específico</label>
+          <input type="text" id="bug-topico" placeholder="ex: Leis de Kirchhoff / Fisiologia" class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-sm text-white mt-1">
+        </div>
+
+        <div>
+          <label class="text-xs text-gray-400">Causa Raiz do Erro</label>
+          <select id="bug-causa" class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-sm text-white mt-1">
+            <option value="Lacuna Teórica">Lacuna Teórica (Conteúdo não visto/esquecido)</option>
+            <option value="Interpretação da Banca">Interpretação da Banca (Compreensão da questão)</option>
+            <option value="Atenção/Distração">Atenção/Distração (Sinal, cálculo básico)</option>
+            <option value="Estratégia/Tempo">Estratégia/Tempo (Falta de tempo no final)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-xs text-gray-400">Ação Corretiva (O que fazer para não errar de novo?)</label>
+          <textarea id="bug-acao" rows="3" placeholder="ex: Refazer lista de exercícios da apostila Poliedro..." class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-sm text-white mt-1"></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-2 pt-3 border-t border-gray-800">
+        <button onclick="toggleModalBug()" class="px-4 py-2 bg-gray-800 text-gray-300 text-xs font-semibold rounded-lg">Cancelar</button>
+        <button onclick="adicionarBug()" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded-lg shadow-lg">Salvar BUG</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LÓGICA E ESTADO LOCAL -->
+  <script>
+    // Estado Padrão dos Dados
+    const defaultData = {
+      simulados: [
+        { id: 1, nome: "Simulado 01 - ACAFE", data: "2026-09-15", port: 11, mat: 5, fis: 4, qui: 6, bio: 6, his: 5, geo: 5, ing: 6, redacao: 8.5, score: 7.82 },
+        { id: 2, nome: "Simulado 02 - ACAFE", data: "2026-10-01", port: 12, mat: 6, fis: 5, qui: 6, bio: 7, his: 6, geo: 5, ing: 7, redacao: 9.0, score: 8.45 }
+      ],
+      bugs: [
+        { id: 1, materia: "Física", topico: "Eletrodinâmica", causa: "Atenção/Distração", acao: "Atentar para unidade de corrente em mA", status: "A Analisar" },
+        { id: 2, materia: "Biologia", topico: "Genética Humana", causa: "Lacuna Teórica", acao: "Rever segunda lei de Mendel", status: "Revisado" },
+        { id: 3, materia: "Química", topico: "Estequiometria", causa: "Estratégia/Tempo", acao: "Treinar simplificação rápida de contas", status: "Dominado" }
+      ],
+      redacao: { titulo: "", texto: "" }
+    };
+
+    // Carregar Estado do LocalStorage
+    let state = JSON.parse(localStorage.getItem('acafe_app_db')) || defaultData;
+
+    function saveState() {
+      localStorage.setItem('acafe_app_db', JSON.stringify(state));
+      renderDashboard();
+    }
+
+    // Variáveis Globais de Gráficos
+    let chartMateriasInstance = null;
+    let chartCausasInstance = null;
+
+    // Alternar Abas (Tabs)
+    function switchTab(tab) {
+      const tabs = ['dashboard', 'simulado', 'bugs', 'redacao'];
+      tabs.forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add('hidden');
+        const navBtn = document.getElementById(`nav-${t}`);
+        if(navBtn) {
+          navBtn.classList.remove('bg-brand-600', 'text-white', 'shadow-md');
+          navBtn.classList.add('text-gray-400');
+        }
+      });
+
+      document.getElementById(`tab-${tab}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`nav-${tab}`);
+      if(activeBtn) {
+        activeBtn.classList.add('bg-brand-600', 'text-white', 'shadow-md');
+        activeBtn.classList.remove('text-gray-400');
+      }
+
+      if(tab === 'dashboard') renderDashboard();
+      if(tab === 'bugs') renderBugs();
+    }
+
+    // Cálculo do Score ACAFE
+    function calcularScore() {
+      const p = parseFloat(document.getElementById('input-port').value) || 0;
+      const m = parseFloat(document.getElementById('input-mat').value) || 0;
+      const f = parseFloat(document.getElementById('input-fis').value) || 0;
+      const q = parseFloat(document.getElementById('input-qui').value) || 0;
+      const b = parseFloat(document.getElementById('input-bio').value) || 0;
+      const h = parseFloat(document.getElementById('input-his').value) || 0;
+      const g = parseFloat(document.getElementById('input-geo').value) || 0;
+      const i = parseFloat(document.getElementById('input-ing').value) || 0;
+      const red = parseFloat(document.getElementById('input-red').value) || 0;
+
+      // Soma de Acertos
+      const totalObjetivas = p + m + f + q + b + h + g + i; // Max 63
+      const propObjetivas = (totalObjetivas / 63) * 10; // Escala 0-10
+      
+      // Média Ponderada
+      const scoreFinal = (propObjetivas * 0.7) + (red * 0.3);
+
+      document.getElementById('calc-resultado').innerHTML = `${scoreFinal.toFixed(2)} <span class="text-sm font-normal text-gray-400">/ 10.0</span>`;
+
+      const badge = document.getElementById('calc-status-badge');
+      if(scoreFinal >= 7.8) {
+        badge.className = "px-4 py-2 rounded-full text-xs font-bold bg-emerald-900/80 text-emerald-300 border border-emerald-500/30";
+        badge.innerText = "Zona de Classificação Medicina (Excelente)";
+      } else if(scoreFinal >= 7.0) {
+        badge.className = "px-4 py-2 rounded-full text-xs font-bold bg-yellow-900/80 text-yellow-300 border border-yellow-500/30";
+        badge.innerText = "Competitivo (Próximo do Corte)";
+      } else {
+        badge.className = "px-4 py-2 rounded-full text-xs font-bold bg-red-900/80 text-red-300 border border-red-500/30";
+        badge.innerText = "Abaixo da Média de Corte";
+      }
+
+      return { totalObjetivas, scoreFinal };
+    }
+
+    // Salvar Simulado no Histórico
+    function salvarSimulado() {
+      const nome = document.getElementById('simulado-nome').value || `Simulado ${state.simulados.length + 1}`;
+      const calc = calcularScore();
+      
+      const novo = {
+        id: Date.now(),
+        nome: nome,
+        data: new Date().toISOString().split('T')[0],
+        port: parseFloat(document.getElementById('input-port').value) || 0,
+        mat: parseFloat(document.getElementById('input-mat').value) || 0,
+        fis: parseFloat(document.getElementById('input-fis').value) || 0,
+        qui: parseFloat(document.getElementById('input-qui').value) || 0,
+        bio: parseFloat(document.getElementById('input-bio').value) || 0,
+        his: parseFloat(document.getElementById('input-his').value) || 0,
+        geo: parseFloat(document.getElementById('input-geo').value) || 0,
+        ing: parseFloat(document.getElementById('input-ing').value) || 0,
+        redacao: parseFloat(document.getElementById('input-red').value) || 0,
+        score: parseFloat(calc.scoreFinal.toFixed(2))
+      };
+
+      state.simulados.push(novo);
+      saveState();
+      alert("Simulado salvo com sucesso!");
+      switchTab('dashboard');
+    }
+
+    // Renderizar Dashboard
+    function renderDashboard() {
+      const ult = state.simulados[state.simulados.length - 1] || { score: 0, port:0, mat:0, fis:0, qui:0, bio:0, his:0, geo:0, ing:0, redacao:0 };
+      const totalAcertos = ult.port + ult.mat + ult.fis + ult.qui + ult.bio + ult.his + ult.geo + ult.ing;
+
+      document.getElementById('kpi-score').innerText = `${ult.score.toFixed(2)} / 10.0`;
+      document.getElementById('kpi-acertos').innerText = `${totalAcertos} / 63`;
+      document.getElementById('kpi-porcentagem').innerText = `${((totalAcertos/63)*100).toFixed(1)}%`;
+      document.getElementById('kpi-bugs-count').innerText = state.bugs.length;
+      document.getElementById('kpi-redacao').innerText = ult.redacao.toFixed(2);
+
+      // Render Tabela Histórico
+      const tbody = document.getElementById('lista-simulados-historico');
+      tbody.innerHTML = '';
+      state.simulados.forEach(s => {
+        const objTot = s.port + s.mat + s.fis + s.qui + s.bio + s.his + s.geo + s.ing;
+        tbody.innerHTML += `
+          <tr class="hover:bg-gray-800/40 transition">
+            <td class="px-4 py-3 font-semibold text-white">${s.nome} <span class="text-xs text-gray-500 font-normal">(${s.data})</span></td>
+            <td class="px-4 py-3">${objTot} / 63</td>
+            <td class="px-4 py-3 text-emerald-400 font-bold">${s.redacao.toFixed(2)}</td>
+            <td class="px-4 py-3 text-purple-400 font-extrabold">${s.score.toFixed(2)}</td>
+            <td class="px-4 py-3 text-right">
+              <button onclick="deletarSimulado(${s.id})" class="text-gray-500 hover:text-red-400"><i class="fa-solid fa-trash-can"></i></button>
+            </td>
+          </tr>
+        `;
+      });
+
+      // Render Gráficos
+      renderCharts(ult);
+    }
+
+    function deletarSimulado(id) {
+      state.simulados = state.simulados.filter(s => s.id !== id);
+      saveState();
+    }
+
+    // Renderizar Gráficos Chart.js
+    function renderCharts(ultSimulado) {
+      // 1. Chart Disciplinas
+      const ctx1 = document.getElementById('chartMaterias').getContext('2d');
+      if(chartMateriasInstance) chartMateriasInstance.destroy();
+
+      chartMateriasInstance = new Chart(ctx1, {
+        type: 'bar',
+        data: {
+          labels: ['Port/Lit (14)', 'Mat (7)', 'Fís (7)', 'Quím (7)', 'Bio (7)', 'Hist (7)', 'Geo (7)', 'Ing (7)'],
+          datasets: [{
+            label: 'Acertos',
+            data: [ultSimulado.port, ultSimulado.mat, ultSimulado.fis, ultSimulado.qui, ultSimulado.bio, ultSimulado.his, ultSimulado.geo, ultSimulado.ing],
+            backgroundColor: '#8b5cf6',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } },
+            x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
+          }
+        }
+      });
+
+      // 2. Chart Causas
+      const ctx2 = document.getElementById('chartCausas').getContext('2d');
+      if(chartCausasInstance) chartCausasInstance.destroy();
+
+      const causaCounts = {};
+      state.bugs.forEach(b => { causaCounts[b.causa] = (causaCounts[b.causa] || 0) + 1; });
+
+      chartCausasInstance = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(causaCounts).length ? Object.keys(causaCounts) : ['Sem Erros'],
+          datasets: [{
+            data: Object.values(causaCounts).length ? Object.values(causaCounts) : [1],
+            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af', font: { size: 11 } } } }
+        }
+      });
+    }
+
+    // Modal & BUGS
+    function toggleModalBug() {
+      document.getElementById('modal-bug').classList.toggle('hidden');
+    }
+
+    function adicionarBug() {
+      const novoBug = {
+        id: Date.now(),
+        materia: document.getElementById('bug-materia').value,
+        topico: document.getElementById('bug-topico').value || 'Geral',
+        causa: document.getElementById('bug-causa').value,
+        acao: document.getElementById('bug-acao').value || 'Rever teoria',
+        status: 'A Analisar'
+      };
+
+      state.bugs.push(novoBug);
+      saveState();
+      toggleModalBug();
+      renderBugs();
+    }
+
+    function renderBugs() {
+      const fMat = document.getElementById('filtro-materia').value;
+      const fCausa = document.getElementById('filtro-causa').value;
+      const fStatus = document.getElementById('filtro-status').value;
+
+      let filtered = state.bugs;
+      if(fMat !== 'TODAS') filtered = filtered.filter(b => b.materia === fMat);
+      if(fCausa !== 'TODAS') filtered = filtered.filter(b => b.causa === fCausa);
+      if(fStatus !== 'TODOS') filtered = filtered.filter(b => b.status === fStatus);
+
+      const tbody = document.getElementById('tabela-bugs-body');
+      tbody.innerHTML = '';
+
+      filtered.forEach(b => {
+        let badgeColor = b.status === 'Dominado' ? 'bg-emerald-900/60 text-emerald-300' : (b.status === 'Revisado' ? 'bg-blue-900/60 text-blue-300' : 'bg-red-900/60 text-red-300');
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-gray-800/40 transition">
+            <td class="px-4 py-3 font-semibold text-white">${b.materia}</td>
+            <td class="px-4 py-3 text-gray-300">${b.topico}</td>
+            <td class="px-4 py-3 text-purple-400">${b.causa}</td>
+            <td class="px-4 py-3 text-gray-400 text-xs">${b.acao}</td>
+            <td class="px-4 py-3">
+              <select onchange="atualizarStatusBug(${b.id}, this.value)" class="text-xs ${badgeColor} px-2 py-1 rounded-full bg-gray-900 border border-gray-700">
+                <option value="A Analisar" ${b.status === 'A Analisar' ? 'selected' : ''}>A Analisar</option>
+                <option value="Revisado" ${b.status === 'Revisado' ? 'selected' : ''}>Revisado</option>
+                <option value="Dominado" ${b.status === 'Dominado' ? 'selected' : ''}>Dominado</option>
+              </select>
+            </td>
+            <td class="px-4 py-3 text-right">
+              <button onclick="deletarBug(${b.id})" class="text-gray-500 hover:text-red-400"><i class="fa-solid fa-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function atualizarStatusBug(id, novoStatus) {
+      const bug = state.bugs.find(b => b.id === id);
+      if(bug) { bug.status = novoStatus; saveState(); renderBugs(); }
+    }
+
+    function deletarBug(id) {
+      state.bugs = state.bugs.filter(b => b.id !== id);
+      saveState();
+      renderBugs();
+    }
+
+    // Laboratório de Redação (10 a 33 linhas)
+    function atualizarContadorRedacao() {
+      const text = document.getElementById('redacao-texto').value;
+      const lines = text ? text.split('\n').length : 0;
+      const words = text ? text.trim().split(/\s+/).filter(w => w.length > 0).length : 0;
+
+      document.getElementById('redacao-linhas').innerText = lines;
+      document.getElementById('redacao-palavras').innerText = words;
+
+      const badge = document.getElementById('redacao-status-linha');
+      if(lines < 10) {
+        badge.className = "text-xs px-2.5 py-1 rounded-full bg-yellow-900/40 text-yellow-300 border border-yellow-800/50";
+        badge.innerText = "Abaixo do Mínimo (Min: 10)";
+      } else if(lines <= 33) {
+        badge.className = "text-xs px-2.5 py-1 rounded-full bg-emerald-900/40 text-emerald-300 border border-emerald-800/50";
+        badge.innerText = "Dentro do Extenso ACAFE (10 a 33 Linhas)";
+      } else {
+        badge.className = "text-xs px-2.5 py-1 rounded-full bg-red-900/40 text-red-300 border border-red-800/50";
+        badge.innerText = "Acima do Limite Máximo (Max: 33)";
+      }
+    }
+
+    function salvarTextoRedacao() {
+      state.redacao = {
+        titulo: document.getElementById('redacao-titulo').value,
+        texto: document.getElementById('redacao-texto').value
+      };
+      saveState();
+      alert("Rascunho salvo no navegador!");
+    }
+
+    // Cronômetro de Redação
+    let timerInterval = null;
+    let timerSeconds = 0;
+
+    function toggleTimer() {
+      const btn = document.getElementById('btn-timer');
+      if(timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        btn.innerHTML = `<i class="fa-solid fa-play mr-1"></i>Continuar`;
+      } else {
+        timerInterval = setInterval(() => {
+          timerSeconds++;
+          const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+          const secs = String(timerSeconds % 60).padStart(2, '0');
+          document.getElementById('timer-display').innerText = `${mins}:${secs}`;
+        }, 1000);
+        btn.innerHTML = `<i class="fa-solid fa-pause mr-1"></i>Pausar`;
+      }
+    }
+
+    function resetData() {
+      if(confirm("Tem certeza que deseja resetar todos os dados salvos?")) {
+        localStorage.removeItem('acafe_app_db');
+        state = defaultData;
+        saveState();
+        location.reload();
+      }
+    }
+
+    // Inicialização
+    window.onload = function() {
+      calcularScore();
+      renderDashboard();
+    };
+  </script>
+</body>
+</html>
